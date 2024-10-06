@@ -2,37 +2,24 @@ import { NestApplication, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { useContainer } from 'class-validator';
 import { writeFileSync } from 'fs';
-import { WinstonModule, utilities } from 'nest-winston';
-import * as winston from 'winston';
-
-import { AppValidationPipe } from '~shared/core/validation/pipes/app-validation.pipe';
 
 import { AppModule } from './app.module';
+import { FlagParser } from './lib/flag-parser';
 
 export class Application {
   private readonly port: string | number;
+  private readonly nodeArguments: Map<string, string>;
   private readonly nodeEnv: string;
   protected app: NestApplication;
 
   constructor() {
     this.port = process.env.DD_PORT || 8080;
     this.nodeEnv = process.env.NODE_ENV;
+    this.nodeArguments = FlagParser.getFlags(process.argv);
   }
   public async init() {
     this.app = await NestFactory.create(AppModule, {
       bodyParser: true,
-      logger: WinstonModule.createLogger({
-        transports: [
-          new winston.transports.Console({
-            format: winston.format.combine(
-              winston.format.timestamp(),
-              this.nodeEnv === 'development' ? utilities.format.nestLike() : winston.format.json(),
-            ),
-          }),
-        ],
-      }),
-      // for @RawBody() to work
-      rawBody: true,
     });
     useContainer(this.app.select(AppModule), { fallbackOnErrors: true });
     this.appHeaders();
@@ -46,17 +33,16 @@ export class Application {
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       credentials: true,
     });
-    this.app.useGlobalPipes(new AppValidationPipe());
   }
 
   private async initSwaggerDoc() {
-    const config = new DocumentBuilder().setTitle('Detect Data API').setVersion('1.0').build();
+    const config = new DocumentBuilder().setTitle(process.env.APP_NAME).setVersion('1.0').build();
     const document = SwaggerModule.createDocument(this.app, config);
     SwaggerModule.setup('api-docs', this.app, document);
 
-    if (process.env.NODE_ENV === 'OPENAPI_GEN') {
+    if (this.nodeArguments.has('api-client-and-exit')) {
       writeFileSync('./api.json', JSON.stringify(document));
-      await this.app.close();
+      await Promise.race([this.app.close(), new Promise((resolve) => setTimeout(resolve, 10000))]);
       process.exit(0);
     }
   }

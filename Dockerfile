@@ -1,23 +1,15 @@
-FROM node:21 AS base
+FROM node:21-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package*.json ./
 
-FROM base AS development
+RUN npm install
 
-COPY .env.development .env.development.local ./
+COPY . .
 
-ENV NODE_ENV=development
+RUN npm run build
 
-FROM base as build
-COPY . ./
-RUN pnpm run build
+EXPOSE 8080
 
-FROM build AS production
-COPY . ./
-
-ENV NODE_ENV=production
-
-CMD ["pnpm", "run", "start:prod"]
+CMD ["npm", "run", "start:prod"]

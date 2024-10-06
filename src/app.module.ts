@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from './shared/config/config.module';
-import { ExceptionsModule } from './shared/core/exceptions/exceptions.module';
+import { CoreModule } from './core/core.module';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
-  imports: [ConfigModule, ExceptionsModule],
+  imports: [CoreModule, SharedModule],
   controllers: [AppController],
   providers: [AppService],
 })

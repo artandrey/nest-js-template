@@ -12,7 +12,9 @@
     "baseUrl": "./",
     "paths": {
       "~modules/*": ["src/modules/*"],
-      "~shared/*": ["src/shared/*"]
+      "~shared/*": ["src/shared/*"],
+      "~core/*": ["src/core/*"],
+      "~lib/*": ["src/lib/*"]
     },
     "incremental": true,
     "skipLibCheck": true,
